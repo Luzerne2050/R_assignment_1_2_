@@ -1,0 +1,112 @@
+---
+title: "HW1 — Import data from statistical packages and databases"
+author: "R Programming Assignment 1"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+root <- "C:/Users/kwizerah/Desktop/AUCA/R-programming/ASSIGNMENT 1"
+data_dir <- file.path(root, "data")
+```
+
+## Goal
+
+Practice the data-importation part of [Class_R for data science](https://rpubs.com/Mapara_lee/1434996):
+
+1. Install helpful packages  
+2. Import data from different sources  
+3. Show how each library helps explore those datasets  
+
+## Packages and what they are for
+
+| Source | Package | Main function |
+|--------|---------|---------------|
+| Text / CSV | `readr` / base R | `read_csv()`, `read.table()` |
+| Excel | `readxl` | `read_excel()` |
+| SPSS / Stata / SAS | `haven` | `read_sav()`, `read_dta()`, `read_sas()` |
+| Database (SQLite) | `DBI` + `RSQLite` | `dbConnect()`, `dbReadTable()`, `dbGetQuery()` |
+
+```{r packages}
+# install.packages(c("readr","readxl","haven","DBI","RSQLite","writexl"))
+library(readr)
+library(readxl)
+library(haven)
+library(DBI)
+library(RSQLite)
+```
+
+## 1. Text file (lecturer style)
+
+```{r text}
+data_class <- read.table(file.path(data_dir, "class_data.txt"), header = TRUE)
+variable.names(data_class)
+head(data_class)
+summary(data_class)
+str(data_class)
+```
+
+## 2. Excel (`readxl`)
+
+```{r excel}
+excel_path <- file.path(data_dir, "class_workbook.xlsx")
+excel_sheets(excel_path)
+excel_students <- read_excel(excel_path, sheet = "students")
+summary(excel_students)
+```
+
+`readxl` reads `.xlsx` without needing Excel installed, and can pick a sheet by name.
+
+## 3. SPSS and Stata — HW1 statistical packages (`haven`)
+
+```{r spss-stata}
+students_spss <- read_sav(file.path(data_dir, "students.sav"))
+students_stata <- read_dta(file.path(data_dir, "students.dta"))
+head(students_spss)
+summary(as.data.frame(students_spss))
+head(students_stata)
+```
+
+`haven` imports SPSS/Stata/SAS files and keeps labelled data (variable/value labels) that plain CSV drops.
+
+## 4. Database — HW1 DBMS (`DBI` + `RSQLite`)
+
+```{r database}
+con <- dbConnect(SQLite(), file.path(data_dir, "class_db.sqlite"))
+dbListTables(con)
+db_class <- dbReadTable(con, "class_data")
+female_students <- dbGetQuery(con, "SELECT * FROM students WHERE gender = 'F'")
+sql_summary <- dbGetQuery(con, "
+  SELECT gender,
+         COUNT(*) AS n,
+         ROUND(AVG(math_score), 2) AS mean_math,
+         ROUND(AVG(it_score), 2) AS mean_it
+  FROM students
+  GROUP BY gender
+")
+dbDisconnect(con)
+
+head(db_class)
+female_students
+sql_summary
+```
+
+`DBI` gives one API for many databases; `RSQLite` lets you practice SQL locally. You can filter and aggregate **before** loading everything into R.
+
+## 5. Quick exploration (from class notes)
+
+```{r explore}
+BMI <- round(data_class$WEIGHT / (data_class$HEIGHT / 100)^2, 2)
+summary(BMI)
+plot(WEIGHT ~ HEIGHT, data = data_class, main = "WEIGHT vs HEIGHT")
+abline(lm(WEIGHT ~ HEIGHT, data = data_class)$coefficients)
+cor(data_class$HEIGHT, data_class$WEIGHT)
+```
+
+## How the libraries help (short answers)
+
+- **`readr` / `read.table`**: bring plain text/CSV into a data frame for `summary()`, plots, and models.  
+- **`readxl`**: pull spreadsheet sheets without manual copy-paste.  
+- **`haven`**: reuse SPSS/Stata/SAS project files; labels survive the import.  
+- **`DBI` + `RSQLite`**: query large tables with SQL, then analyze the result in R.

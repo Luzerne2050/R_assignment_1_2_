@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+data/*.xlsx
+data/*.sav
+data/*.dta
+data/*.sqlite
+data/*.csv
+data/*.pdf
+.DS_Store
+Thumbs.db
+agent-tools/
